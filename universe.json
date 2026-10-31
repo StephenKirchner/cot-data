@@ -1,0 +1,212 @@
+[
+  {
+    "code": "099741",
+    "label": "EUR",
+    "asset_class": "FX",
+    "spec_source": "tff",
+    "note": ""
+  },
+  {
+    "code": "097741",
+    "label": "JPY",
+    "asset_class": "FX",
+    "spec_source": "tff",
+    "note": ""
+  },
+  {
+    "code": "096742",
+    "label": "GBP",
+    "asset_class": "FX",
+    "spec_source": "tff",
+    "note": ""
+  },
+  {
+    "code": "092741",
+    "label": "CHF",
+    "asset_class": "FX",
+    "spec_source": "tff",
+    "note": ""
+  },
+  {
+    "code": "090741",
+    "label": "CAD",
+    "asset_class": "FX",
+    "spec_source": "tff",
+    "note": ""
+  },
+  {
+    "code": "232741",
+    "label": "AUD",
+    "asset_class": "FX",
+    "spec_source": "tff",
+    "note": ""
+  },
+  {
+    "code": "112741",
+    "label": "NZD",
+    "asset_class": "FX",
+    "spec_source": "tff",
+    "note": ""
+  },
+  {
+    "code": "095741",
+    "label": "MXN",
+    "asset_class": "FX",
+    "spec_source": "tff",
+    "note": ""
+  },
+  {
+    "code": "102741",
+    "label": "BRL",
+    "asset_class": "FX",
+    "spec_source": "tff",
+    "note": ""
+  },
+  {
+    "code": "122741",
+    "label": "ZAR",
+    "asset_class": "FX",
+    "spec_source": "tff",
+    "note": ""
+  },
+  {
+    "code": "098662",
+    "label": "USD Index (DXY)",
+    "asset_class": "FX",
+    "spec_source": "tff",
+    "note": "Sign is opposite to the other FX rows: net long = long USD."
+  },
+  {
+    "code": "042601",
+    "label": "UST 2y",
+    "asset_class": "Rates",
+    "spec_source": "tff",
+    "note": ""
+  },
+  {
+    "code": "044601",
+    "label": "UST 5y",
+    "asset_class": "Rates",
+    "spec_source": "tff",
+    "note": ""
+  },
+  {
+    "code": "043602",
+    "label": "UST 10y",
+    "asset_class": "Rates",
+    "spec_source": "tff",
+    "note": ""
+  },
+  {
+    "code": "043607",
+    "label": "UST Ultra 10y",
+    "asset_class": "Rates",
+    "spec_source": "tff",
+    "note": ""
+  },
+  {
+    "code": "020601",
+    "label": "UST Bond",
+    "asset_class": "Rates",
+    "spec_source": "tff",
+    "note": ""
+  },
+  {
+    "code": "020604",
+    "label": "UST Ultra Bond",
+    "asset_class": "Rates",
+    "spec_source": "tff",
+    "note": ""
+  },
+  {
+    "code": "134741",
+    "label": "SOFR 3m",
+    "asset_class": "Rates",
+    "spec_source": "tff",
+    "note": "Series starts 2018 (SOFR launch); 3y z-scores available from 2021."
+  },
+  {
+    "code": "045601",
+    "label": "Fed Funds 30d",
+    "asset_class": "Rates",
+    "spec_source": "tff",
+    "note": ""
+  },
+  {
+    "code": "13874+",
+    "label": "S&P 500 (consol.)",
+    "asset_class": "Equities",
+    "spec_source": "tff",
+    "note": "CFTC consolidated series: big + e-mini + micro, in big-contract equivalents."
+  },
+  {
+    "code": "20974+",
+    "label": "Nasdaq-100 (consol.)",
+    "asset_class": "Equities",
+    "spec_source": "tff",
+    "note": "CFTC consolidated series."
+  },
+  {
+    "code": "239742",
+    "label": "Russell 2000 e-mini",
+    "asset_class": "Equities",
+    "spec_source": "tff",
+    "note": ""
+  },
+  {
+    "code": "12460+",
+    "label": "DJIA (consol.)",
+    "asset_class": "Equities",
+    "spec_source": "tff",
+    "note": "CFTC consolidated series."
+  },
+  {
+    "code": "240743",
+    "label": "Nikkei 225 (JPY)",
+    "asset_class": "Equities",
+    "spec_source": "tff",
+    "note": "Yen-denominated CME contract; the USD-denominated contract (240741) drops below the 20-trader reporting threshold intermittently and is excluded."
+  },
+  {
+    "code": "1170E1",
+    "label": "VIX",
+    "asset_class": "Equities",
+    "spec_source": "tff",
+    "note": "Net long VIX = long volatility (short equity risk)."
+  },
+  {
+    "code": "088691",
+    "label": "Gold (COMEX)",
+    "asset_class": "Commodities",
+    "spec_source": "disagg",
+    "note": ""
+  },
+  {
+    "code": "085692",
+    "label": "Copper (COMEX)",
+    "asset_class": "Commodities",
+    "spec_source": "disagg",
+    "note": ""
+  },
+  {
+    "code": "067651",
+    "label": "WTI crude (NYMEX)",
+    "asset_class": "Commodities",
+    "spec_source": "disagg",
+    "note": "Brent is not covered: ICE Futures Europe Brent is not reported to the CFTC, and NYMEX Brent Last Day (06765T) is a spread vehicle (other-reportable spread desks, ~40% of OI in spreads) whose non-commercial net is not comparable."
+  },
+  {
+    "code": "133741",
+    "label": "Bitcoin (CME)",
+    "asset_class": "Crypto",
+    "spec_source": "tff",
+    "note": "Series starts Dec 2017."
+  },
+  {
+    "code": "146021",
+    "label": "Ether (CME)",
+    "asset_class": "Crypto",
+    "spec_source": "tff",
+    "note": "Series starts Feb 2021."
+  }
+]

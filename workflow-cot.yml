@@ -1,0 +1,45 @@
+name: CFTC COT positioning data
+
+on:
+  schedule:
+    # CFTC releases Friday 15:30 US Eastern = 19:30 UTC (EDT) / 20:30 UTC (EST).
+    - cron: "45 21 * * 5"   # Friday 21:45 UTC: after the release in either season
+    - cron: "30 23 * * 5"   # Friday 23:30 UTC: retry if the first pull was early
+    - cron: "0 22 * * 1,2"  # Monday/Tuesday: holiday-delayed releases
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cot-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch CFTC data (Legacy, TFF, Disaggregated)
+        run: python fetch_cot.py
+
+      - name: Build pages
+        run: python build_pages.py
+
+      - name: Commit if the data changed
+        run: |
+          git config user.name "cot-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data artifact site
+          if git diff --cached --quiet; then
+            echo "No new data."
+          else
+            AS_OF=$(python -c 'import json;print(json.load(open("data/noncomm.json"))["as_of"])')
+            git commit -m "COT data as of ${AS_OF}"
+            git push
+          fi

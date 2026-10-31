@@ -1,0 +1,467 @@
+<title>COT Positioning</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: one 1120px column; the two ranked charts sit side by side on wide screens and stack on phones;
+     history panels in a responsive grid per asset class. Numbers in a mono face, UI in a humanist sans. */
+  :root {
+    --bg: #f5f7f4; --surface: #ffffff; --fg: #1b2420; --muted: #5f6b65; --line: #d9dfd9; --line-soft: #e9ede8;
+    --long: #1d6fb8; --short: #c8382b; --long-bg: #dceaf7; --short-bg: #f8ddd9; --x2-bg: #f4c6c0;
+    --band1: #d5dad5; --band2: #e8ebe7; --series: #1f2a37; --zero: #6b756f;
+    --fx: #0072B2; --rates: #E69F00; --eq: #009E73; --cmd: #CC79A7; --crypto: #56B4E9;
+    --chip: #e6ebe6;
+    --font: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg: #121715; --surface: #1a211d; --fg: #e6ebe7; --muted: #99a59e; --line: #2c3530; --line-soft: #222a26;
+    --long: #5ea4e8; --short: #f08a7c; --long-bg: #1b3550; --short-bg: #4a2522; --x2-bg: #6b2b25;
+    --band1: #313c37; --band2: #252e2a; --series: #e6ebe7; --zero: #8b968f;
+    --fx: #4d9be0; --rates: #f0ad2a; --eq: #2fbf8f; --cmd: #d98fbd; --crypto: #6ec0f2;
+    --chip: #263029; color-scheme: dark } }
+  :root[data-theme="dark"] {
+    --bg: #121715; --surface: #1a211d; --fg: #e6ebe7; --muted: #99a59e; --line: #2c3530; --line-soft: #222a26;
+    --long: #5ea4e8; --short: #f08a7c; --long-bg: #1b3550; --short-bg: #4a2522; --x2-bg: #6b2b25;
+    --band1: #313c37; --band2: #252e2a; --series: #e6ebe7; --zero: #8b968f;
+    --fx: #4d9be0; --rates: #f0ad2a; --eq: #2fbf8f; --cmd: #d98fbd; --crypto: #6ec0f2;
+    --chip: #263029; color-scheme: dark }
+
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 14px; line-height: 1.5;
+         padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 48px; }
+  .wrap { max-width: 1120px; margin: 0 auto; }
+  h1 { font-size: 24px; font-weight: 600; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+  h2 { font-size: 17px; font-weight: 600; margin: 0 0 6px; text-wrap: balance; }
+  h3 { font-size: 14px; font-weight: 600; margin: 18px 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  p { margin: 0 0 10px; max-width: 72ch; }
+  p.lead, .muted { color: var(--muted); }
+  a { color: var(--long); }
+  code { font-family: var(--mono); font-size: 0.92em; }
+
+  header { padding-block: 22px 14px; border-bottom: 1px solid var(--line); margin-bottom: 20px; }
+  .topline { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip { background: var(--chip); border-radius: 999px; padding: 2px 10px; font-size: 12px; color: var(--fg); }
+  .chip strong { font-weight: 600; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin-top: 12px; font-size: 13px; }
+  .controls label { color: var(--muted); margin-right: 6px; }
+  select, button { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+  select:focus-visible, button:focus-visible, th:focus-visible { outline: 2px solid var(--long); outline-offset: 1px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; padding: 4px 10px; background: transparent; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--long); color: #fff; }
+
+  section { margin-bottom: 30px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } }
+  .panel { min-width: 0; }
+  .chart { width: 100%; }
+  .chart svg { display: block; width: 100%; height: auto; font-family: var(--font); }
+  .chart text { fill: var(--fg); }
+  .chart .lab { font-size: 11.5px; }
+  .chart .val { font-size: 11px; fill: var(--muted); font-family: var(--mono); }
+  .chart .tick { font-size: 11px; fill: var(--muted); font-family: var(--mono); }
+  .chart .axis { stroke: var(--line); }
+  .chart .zero { stroke: var(--zero); stroke-width: 1; }
+  .chart .grid { stroke: var(--line-soft); }
+  .chart rect.bar { cursor: default; }
+  .chart rect.bar:hover, .chart circle.pt:hover { stroke: var(--fg); stroke-width: 1; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); margin: 6px 0 2px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
+  .legend .ring::before { background: var(--surface); border: 1.5px solid var(--series); border-radius: 50%; width: 8px; height: 8px; }
+
+  ul.headline { margin: 6px 0 0; padding-left: 18px; max-width: 90ch; }
+  ul.headline li { margin-bottom: 4px; }
+  .pos { color: var(--long); font-weight: 600; } .neg { color: var(--short); font-weight: 600; }
+
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { padding: 5px 9px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line-soft); font-variant-numeric: tabular-nums; }
+  td.num { font-family: var(--mono); font-size: 12.5px; }
+  th { position: sticky; top: 0; background: var(--surface); color: var(--muted); font-weight: 600; font-size: 12px; border-bottom: 1px solid var(--line); }
+  th.sortable { cursor: pointer; user-select: none; }
+  th.sortable:hover { color: var(--fg); }
+  th .arrow { font-size: 10px; margin-left: 3px; }
+  th:first-child, td:first-child, th.l, td.l { text-align: left; }
+  tr:last-child td { border-bottom: 0; }
+  td.long { background: var(--long-bg); } td.short { background: var(--short-bg); } td.x2 { background: var(--x2-bg); }
+  td.grp { font-weight: 600; color: var(--muted); }
+  tr.grpstart td { border-top: 2px solid var(--line); }
+
+  .hist { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px 18px; }
+  .hpanel { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px 4px; min-width: 0; }
+  .hpanel .ttl { display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 2px; }
+  .hpanel .ttl b { font-weight: 600; }
+  .hpanel .ttl span { font-family: var(--mono); color: var(--muted); }
+  .hpanel svg { display: block; width: 100%; height: auto; }
+  .hpanel .tick { font-size: 9px; fill: var(--muted); font-family: var(--mono); }
+
+  .tip { position: fixed; z-index: 20; pointer-events: none; background: var(--fg); color: var(--bg); padding: 6px 9px; border-radius: 6px; font-size: 12px; line-height: 1.4; max-width: 260px; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+  .tip b { font-weight: 600; }
+  .tip .m { font-family: var(--mono); }
+
+  .notes p { max-width: 90ch; }
+  .notes b { font-weight: 600; }
+  footer { color: var(--muted); font-size: 12px; margin-top: 24px; border-top: 1px solid var(--line); padding-top: 10px; }
+  .empty { color: var(--muted); font-style: italic; }
+  @media (prefers-reduced-motion: no-preference) { .seg button, select { transition: background .15s; } }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="topline">
+    <h1 id="title">CFTC Commitments of Traders: speculative positioning</h1>
+    <div class="muted" id="vintage"></div>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="controls">
+    <span><label for="asof">Positions as of</label><select id="asof"></select></span>
+    <span><label>z-score basis</label>
+      <span class="seg" role="group" aria-label="z-score basis">
+        <button type="button" id="basis-net" aria-pressed="true">Net contracts</button>
+        <button type="button" id="basis-pct" aria-pressed="false">Net % of OI</button>
+      </span>
+    </span>
+  </div>
+</header>
+
+<section id="s-headline">
+  <h2>Headline</h2>
+  <p class="lead" id="headline-lead"></p>
+  <ul class="headline" id="headline"></ul>
+</section>
+
+<section>
+  <div class="grid2">
+    <div class="panel">
+      <h2>Ranked by net position, % of open interest</h2>
+      <p class="lead">Long minus short of the speculative category, spreads excluded, divided by total open interest. Most net long at the top.</p>
+      <div class="legend" id="legend-class"></div>
+      <div class="chart" id="chart-abs"></div>
+    </div>
+    <div class="panel">
+      <h2>Ranked by 3-year z-score</h2>
+      <p class="lead" id="z-lead"></p>
+      <div class="legend"><span style="--c: var(--band1)">±1σ band</span><span class="ring">1y z-score</span></div>
+      <div class="chart" id="chart-z"></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Weekly movers</h2>
+  <p class="lead" id="movers-lead"></p>
+  <div class="tablewrap"><table id="tbl-movers"></table></div>
+</section>
+
+<section>
+  <h2>Full table</h2>
+  <p class="lead">Click a column heading to sort. Shaded z cells: |z| &gt; 2.</p>
+  <div class="tablewrap"><table id="tbl-full"></table></div>
+</section>
+
+<section id="s-history">
+  <h2>History by asset class</h2>
+  <p class="lead" id="hist-lead"></p>
+  <div id="history"></div>
+</section>
+
+<section class="notes" id="notes">
+  <h2>Coverage and method</h2>
+  <div id="notes-body"></div>
+</section>
+
+<footer id="foot"></footer>
+</div>
+<div id="tip" class="tip" hidden></div>
+
+<script id="cot-config" type="application/json">/*__CONFIG__*/{}</script>
+<script id="cot-data" type="application/json">/*__DATA__*/{}</script>
+<script>
+(function () {
+  "use strict";
+  const CFG = JSON.parse(document.getElementById("cot-config").textContent);
+  const DATA = JSON.parse(document.getElementById("cot-data").textContent);
+  const U = CFG.universe || [];
+  const UMAP = new Map(U.map(u => [u.code, u]));
+  const CLASSES = ["FX", "Rates", "Equities", "Commodities", "Crypto"];
+  const CLASS_VAR = { FX: "var(--fx)", Rates: "var(--rates)", Equities: "var(--eq)", Commodities: "var(--cmd)", Crypto: "var(--crypto)" };
+  const DAY = 86400000;
+  const WINDOWS = { z1: 364, z3: 1092 };
+  const MIN_N = { z1: Math.floor(0.8 * 364 / 7), z3: Math.floor(0.8 * 1092 / 7) };
+  const HISTORY_YEARS = 5;
+
+  // ---------- data ----------
+  const parseDate = s => { const p = s.split("-"); return Date.UTC(+p[0], +p[1] - 1, +p[2]); };
+  const fmtDate = s => { const d = new Date(parseDate(s)); return d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }); };
+  const fmtDateLong = s => { const d = new Date(parseDate(s)); return d.toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }); };
+  const addDays = (s, n) => new Date(parseDate(s) + n * DAY).toISOString().slice(0, 10);
+  const fmtInt = n => n == null || isNaN(n) ? "–" : Math.round(n).toLocaleString("en-AU");
+  const fmtSInt = n => n == null || isNaN(n) ? "–" : (n > 0 ? "+" : "") + Math.round(n).toLocaleString("en-AU");
+  const fmt1 = n => n == null || isNaN(n) ? "–" : n.toFixed(1);
+  const fmtS1 = n => n == null || isNaN(n) ? "–" : (n > 0 ? "+" : "") + n.toFixed(1);
+  const fmt2 = n => n == null || isNaN(n) ? "–" : n.toFixed(2);
+  const fmtS2 = n => n == null || isNaN(n) ? "–" : (n > 0 ? "+" : "") + n.toFixed(2);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  const series = new Map();
+  for (const r of DATA.rows || []) {
+    const [d, c, oi, l, s, sp] = r;
+    if (!UMAP.has(c)) continue;
+    let arr = series.get(c); if (!arr) { arr = []; series.set(c, arr); }
+    arr.push({ d, t: parseDate(d), oi, long: l, short: s, spread: sp, net: l - s, pct: oi > 0 ? 100 * (l - s) / oi : null });
+  }
+  function rolling(arr, key) {
+    // trailing calendar windows ending at and including each observation
+    for (let i = 0; i < arr.length; i++) {
+      const o = arr[i]; o.st = o.st || {}; o.st[key] = {};
+      for (const w of Object.keys(WINDOWS)) {
+        const start = o.t - (WINDOWS[w] - 1) * DAY;
+        let n = 0, sum = 0, sq = 0;
+        for (let j = i; j >= 0 && arr[j].t >= start; j--) { const v = arr[j][key]; if (v == null) continue; n++; sum += v; sq += v * v; }
+        let mu = null, sd = null, z = null;
+        if (n >= MIN_N[w]) { mu = sum / n; const varr = n > 1 ? (sq - n * mu * mu) / (n - 1) : 0; sd = varr > 0 ? Math.sqrt(varr) : 0; z = sd > 0 && o[key] != null ? (o[key] - mu) / sd : null; }
+        o.st[key]["mu_" + w] = mu; o.st[key]["sd_" + w] = sd; o.st[key][w] = z;
+      }
+    }
+    for (let i = 0; i < arr.length; i++) { const p = i > 0 ? arr[i - 1] : null; arr[i].st[key].dz3 = p && p.st[key].z3 != null && arr[i].st[key].z3 != null ? arr[i].st[key].z3 - p.st[key].z3 : null; }
+  }
+  const index = new Map();
+  for (const [c, arr] of series) {
+    arr.sort((a, b) => a.t - b.t);
+    for (let i = arr.length - 1; i > 0; i--) if (arr[i].d === arr[i - 1].d) arr.splice(i, 1);
+    for (let i = 0; i < arr.length; i++) { const p = i > 0 ? arr[i - 1] : null; arr[i].dnet = p ? arr[i].net - p.net : null; arr[i].dpct = p && p.pct != null && arr[i].pct != null ? arr[i].pct - p.pct : null; arr[i].doi = p ? arr[i].oi - p.oi : null; }
+    rolling(arr, "net"); rolling(arr, "pct");
+    index.set(c, new Map(arr.map(o => [o.d, o])));
+  }
+  const dates = [...new Set([].concat(...[...series.values()].map(a => a.map(o => o.d))))].sort().reverse();
+
+  // ---------- state ----------
+  const state = { asOf: dates[0], basis: "net", sortKey: "rank_abs", sortDir: 1 };
+  try { const b = localStorage.getItem("cot-basis"); if (b === "net" || b === "pct") state.basis = b; } catch (e) { /* storage unavailable */ }
+
+  function crossSection(asOf, basis) {
+    const rows = [], missing = [];
+    for (const u of U) {
+      const ix = index.get(u.code); const o = ix && ix.get(asOf);
+      if (!o) {
+        const arr = series.get(u.code) || []; let last = null; for (const x of arr) if (x.d <= asOf) last = x.d;
+        missing.push({ ...u, lastSeen: last }); continue;
+      }
+      const st = o.st[basis];
+      rows.push({ ...u, d: o.d, oi: o.oi, long: o.long, short: o.short, spread: o.spread, net: o.net, pct: o.pct, dnet: o.dnet, dpct: o.dpct,
+                  z1: st.z1, z3: st.z3, dz3: st.dz3, mu3: st.mu_z3, sd3: st.sd_z3 });
+    }
+    const byPct = rows.filter(r => r.pct != null).sort((a, b) => b.pct - a.pct); byPct.forEach((r, i) => r.rank_abs = i + 1);
+    const byZ = rows.filter(r => r.z3 != null).sort((a, b) => b.z3 - a.z3); byZ.forEach((r, i) => r.rank_z = i + 1);
+    rows.sort((a, b) => (a.rank_abs || 1e9) - (b.rank_abs || 1e9));
+    return { rows, missing };
+  }
+  function prevDate(asOf) { for (const d of dates) if (d < asOf) return d; return null; }
+
+  // ---------- tooltip ----------
+  const tip = document.getElementById("tip");
+  function showTip(html, ev) { tip.innerHTML = html; tip.hidden = false; moveTip(ev); }
+  function moveTip(ev) { const pad = 14; let x = ev.clientX + pad, y = ev.clientY + pad; const r = tip.getBoundingClientRect(); if (x + r.width > window.innerWidth - 8) x = ev.clientX - r.width - pad; if (y + r.height > window.innerHeight - 8) y = ev.clientY - r.height - pad; tip.style.left = x + "px"; tip.style.top = y + "px"; }
+  function hideTip() { tip.hidden = true; }
+  function rowTip(r) {
+    return `<b>${esc(r.label)}</b> · ${esc(r.asset_class)}<br><span class="m">Net ${fmtSInt(r.net)} contracts (${fmtS1(r.pct)}% of OI)</span><br><span class="m">w/w ${fmtSInt(r.dnet)} (${fmtS1(r.dpct)} pp)</span><br><span class="m">z 1y ${fmtS2(r.z1)} · z 3y ${fmtS2(r.z3)}</span><br><span class="m">OI ${fmtInt(r.oi)}</span>`;
+  }
+
+  // ---------- svg helpers ----------
+  const NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, text) { const e = document.createElementNS(NS, tag); for (const k in attrs) if (attrs[k] != null) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
+  function niceTicks(lo, hi, n) {
+    const span = hi - lo || 1; const step0 = span / n; const mag = Math.pow(10, Math.floor(Math.log10(step0)));
+    const cand = [1, 2, 2.5, 5, 10].map(m => m * mag); let step = cand.find(s => span / s <= n) || cand[cand.length - 1];
+    const t = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) t.push(+v.toFixed(10)); return t;
+  }
+
+  function hbar(container, rows, opt) {
+    container.innerHTML = "";
+    const width = Math.max(320, container.clientWidth || 520);
+    const narrow = width < 420;
+    const labelW = narrow ? 104 : 138, right = 40, rowH = 21, top = 8, bottom = 30;
+    const plotW = width - labelW - right, height = top + rows.length * rowH + bottom;
+    const vals = rows.map(opt.value).filter(v => v != null);
+    let lo = Math.min(0, ...vals), hi = Math.max(0, ...vals); if (opt.minSpan) { lo = Math.min(lo, -opt.minSpan); hi = Math.max(hi, opt.minSpan); }
+    const padv = (hi - lo) * (narrow ? 0.2 : 0.14) || 1; lo -= padv; hi += padv;
+    const x = v => labelW + (v - lo) / (hi - lo) * plotW;
+    const svg = el("svg", { viewBox: `0 0 ${width} ${height}`, width, height, role: "img", "aria-label": opt.aria });
+    if (opt.band) svg.appendChild(el("rect", { x: x(-opt.band), y: top - 4, width: x(opt.band) - x(-opt.band), height: rows.length * rowH + 8, fill: "var(--band1)", opacity: 0.55 }));
+    for (const t of niceTicks(lo, hi, narrow ? 4 : 6)) {
+      svg.appendChild(el("line", { x1: x(t), x2: x(t), y1: top - 4, y2: top + rows.length * rowH + 4, class: t === 0 ? "zero" : "grid" }));
+      svg.appendChild(el("text", { x: x(t), y: height - 10, class: "tick", "text-anchor": "middle" }, opt.tickFmt ? opt.tickFmt(t) : t));
+    }
+    if (opt.dashed) for (const d of opt.dashed) if (d > lo && d < hi) svg.appendChild(el("line", { x1: x(d), x2: x(d), y1: top - 4, y2: top + rows.length * rowH + 4, stroke: "var(--zero)", "stroke-dasharray": "3 3", opacity: 0.8 }));
+    rows.forEach((r, i) => {
+      const v = opt.value(r); const yc = top + i * rowH + rowH / 2;
+      const lab = el("text", { x: labelW - 8, y: yc + 4, class: "lab", "text-anchor": "end" }, narrow && r.label.length > 14 ? r.label.slice(0, 13) + "…" : r.label);
+      svg.appendChild(lab);
+      if (v == null) { svg.appendChild(el("text", { x: x(0) + 6, y: yc + 4, class: "val" }, "n/a")); return; }
+      const bx = Math.min(x(0), x(v)), bw = Math.max(1, Math.abs(x(v) - x(0)));
+      const bar = el("rect", { x: bx, y: yc - 7, width: bw, height: 14, rx: 1.5, fill: CLASS_VAR[r.asset_class] || "var(--series)", class: "bar" });
+      bar.addEventListener("mouseenter", ev => showTip(rowTip(r), ev)); bar.addEventListener("mousemove", moveTip); bar.addEventListener("mouseleave", hideTip);
+      svg.appendChild(bar);
+      // value label sits beyond both the bar end and the 1y marker, on the bar's side
+      const pv0 = opt.point ? opt.point(r) : null;
+      const ext = pv0 == null ? v : (v >= 0 ? Math.max(v, pv0) : Math.min(v, pv0));
+      const gap = pv0 != null && ext === pv0 && ext !== v ? 9 : 5;
+      svg.appendChild(el("text", { x: v >= 0 ? x(ext) + gap : x(ext) - gap, y: yc + 4, class: "val", "text-anchor": v >= 0 ? "start" : "end" }, opt.labFmt(v)));
+      if (opt.point) { const pv = pv0; if (pv != null) { const c = el("circle", { cx: x(pv), cy: yc, r: 3.6, fill: "var(--surface)", stroke: "var(--series)", "stroke-width": 1.4, class: "pt" }); c.addEventListener("mouseenter", ev => showTip(rowTip(r), ev)); c.addEventListener("mousemove", moveTip); c.addEventListener("mouseleave", hideTip); svg.appendChild(c); } }
+    });
+    svg.appendChild(el("text", { x: labelW + plotW / 2, y: height - 0, class: "tick", "text-anchor": "middle" }, ""));
+    container.appendChild(svg);
+  }
+
+  function sparkline(container, arr, asOf, basis, r) {
+    const from = parseDate(asOf) - HISTORY_YEARS * 365.25 * DAY;
+    const pts = arr.filter(o => o.t >= from && o.d <= asOf);
+    const W = 300, H = 150, L = 42, R = 8, T = 8, B = 20;
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": `${r.label} history` });
+    if (pts.length < 2) { container.appendChild(svg); return; }
+    const y = o => o[basis], mu = o => o.st[basis].mu_z3, sd = o => o.st[basis].sd_z3;
+    const ys = []; for (const o of pts) { if (y(o) != null) ys.push(y(o)); if (mu(o) != null && sd(o) != null) ys.push(mu(o) + 2 * sd(o), mu(o) - 2 * sd(o)); }
+    let lo = Math.min(0, ...ys), hi = Math.max(0, ...ys); const pad = (hi - lo) * 0.06 || 1; lo -= pad; hi += pad;
+    const t0 = pts[0].t, t1 = pts[pts.length - 1].t;
+    const X = t => L + (t - t0) / (t1 - t0 || 1) * (W - L - R), Y = v => T + (hi - v) / (hi - lo) * (H - T - B);
+    const path = (f, g) => { let d = "", open = false; for (const o of pts) { const v = f(o); if (v == null) { open = false; continue; } d += (open ? "L" : "M") + X(o.t).toFixed(1) + " " + Y(v).toFixed(1); open = true; } return d; };
+    const ribbon = (k) => { const up = pts.filter(o => mu(o) != null), dn = up.slice().reverse(); if (!up.length) return ""; return "M" + up.map(o => X(o.t).toFixed(1) + " " + Y(mu(o) + k * sd(o)).toFixed(1)).join("L") + "L" + dn.map(o => X(o.t).toFixed(1) + " " + Y(mu(o) - k * sd(o)).toFixed(1)).join("L") + "Z"; };
+    svg.appendChild(el("path", { d: ribbon(2), fill: "var(--band2)" }));
+    svg.appendChild(el("path", { d: ribbon(1), fill: "var(--band1)" }));
+    svg.appendChild(el("path", { d: path(mu), fill: "none", stroke: "var(--zero)", "stroke-width": 0.8, "stroke-dasharray": "3 3" }));
+    if (lo < 0 && hi > 0) svg.appendChild(el("line", { x1: L, x2: W - R, y1: Y(0), y2: Y(0), class: "zero", stroke: "var(--zero)" }));
+    svg.appendChild(el("path", { d: path(y), fill: "none", stroke: "var(--series)", "stroke-width": 1.3 }));
+    const last = pts[pts.length - 1]; if (y(last) != null) svg.appendChild(el("circle", { cx: X(last.t), cy: Y(y(last)), r: 3, fill: "var(--short)" }));
+    const yt = niceTicks(lo, hi, 3); for (const t of yt) { svg.appendChild(el("line", { x1: L - 3, x2: L, y1: Y(t), y2: Y(t), stroke: "var(--line)" })); svg.appendChild(el("text", { x: L - 5, y: Y(t) + 3, class: "tick", "text-anchor": "end" }, basis === "net" ? fmtK(t) : t.toFixed(0) + "%")); }
+    const y0 = new Date(t0).getUTCFullYear(), y1 = new Date(t1).getUTCFullYear();
+    for (let yr = y0 + 1; yr <= y1; yr++) { const tt = Date.UTC(yr, 0, 1); if (tt < t0 || tt > t1) continue; svg.appendChild(el("line", { x1: X(tt), x2: X(tt), y1: H - B, y2: H - B + 3, stroke: "var(--line)" })); svg.appendChild(el("text", { x: X(tt), y: H - 6, class: "tick", "text-anchor": "middle" }, String(yr))); }
+    // hover: nearest observation
+    const hit = el("rect", { x: L, y: T, width: W - L - R, height: H - T - B, fill: "transparent" });
+    const cursor = el("line", { x1: 0, x2: 0, y1: T, y2: H - B, stroke: "var(--zero)", "stroke-width": 0.8, visibility: "hidden" });
+    hit.addEventListener("mousemove", ev => { const bb = svg.getBoundingClientRect(); const fx = (ev.clientX - bb.left) / bb.width * W; const tt = t0 + (fx - L) / (W - L - R) * (t1 - t0); let best = pts[0]; for (const o of pts) if (Math.abs(o.t - tt) < Math.abs(best.t - tt)) best = o; cursor.setAttribute("x1", X(best.t)); cursor.setAttribute("x2", X(best.t)); cursor.setAttribute("visibility", "visible"); const st = best.st[basis]; showTip(`<b>${esc(r.label)}</b> · ${fmtDate(best.d)}<br><span class="m">Net ${fmtSInt(best.net)} (${fmtS1(best.pct)}% of OI)</span><br><span class="m">z 1y ${fmtS2(st.z1)} · z 3y ${fmtS2(st.z3)}</span>`, ev); });
+    hit.addEventListener("mouseleave", () => { cursor.setAttribute("visibility", "hidden"); hideTip(); });
+    svg.appendChild(cursor); svg.appendChild(hit);
+    container.appendChild(svg);
+  }
+  const fmtK = v => Math.abs(v) >= 1e6 ? (v / 1e6).toFixed(1).replace(/\.0$/, "") + "m" : Math.abs(v) >= 1000 ? Math.round(v / 1000) + "k" : String(Math.round(v));
+
+  // ---------- render ----------
+  function render() {
+    const asOf = state.asOf, basis = state.basis, prev = prevDate(asOf);
+    const cs = crossSection(asOf, basis), rows = cs.rows;
+    const basisLabel = basis === "net" ? "net contracts" : "net % of open interest";
+    document.title = CFG.title || document.title;
+    document.getElementById("title").textContent = CFG.title || "COT positioning";
+    document.getElementById("vintage").textContent = DATA.generated ? "Data pulled " + new Date(DATA.generated).toLocaleString("en-AU", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Australia/Sydney" }) + " AEDT/AEST" : "";
+    document.getElementById("chips").innerHTML =
+      `<span class="chip"><strong>${esc(CFG.category_label)}</strong></span>` +
+      `<span class="chip">${CFG.report === "com" ? "Futures and options combined" : "Futures only"}</span>` +
+      `<span class="chip">${rows.length} of ${U.length} contracts reported</span>` +
+      `<span class="chip">Latest report: ${fmtDate(dates[0])} (released ${fmtDate(addDays(dates[0], 3))})</span>`;
+    const sel = document.getElementById("asof");
+    if (!sel.options.length) { for (const d of dates.slice(0, 104)) { const o = document.createElement("option"); o.value = d; o.textContent = fmtDate(d); sel.appendChild(o); } }
+    sel.value = asOf;
+    document.getElementById("basis-net").setAttribute("aria-pressed", basis === "net");
+    document.getElementById("basis-pct").setAttribute("aria-pressed", basis === "pct");
+
+    // headline
+    const byAbs = rows.filter(r => r.pct != null), byZ = rows.filter(r => r.z3 != null).slice().sort((a, b) => b.z3 - a.z3);
+    const sayAbs = r => `<b>${esc(r.label)}</b> <span class="${r.pct >= 0 ? "pos" : "neg"}">${fmtS1(r.pct)}%</span> of OI (z<sub>3y</sub> ${fmtS1(r.z3)})`;
+    const sayZ = r => `<b>${esc(r.label)}</b> z<sub>3y</sub> <span class="${r.z3 >= 0 ? "pos" : "neg"}">${fmtS1(r.z3)}</span> (${fmtS1(r.pct)}% of OI)`;
+    const movers = rows.filter(r => r.dpct != null).slice().sort((a, b) => b.dpct - a.dpct);
+    const up = movers.slice(0, 5), dn = movers.slice(-5).reverse();
+    const sayMv = r => `<b>${esc(r.label)}</b> ${fmtS1(r.dpct)} pp`;
+    const n2 = rows.filter(r => r.z3 != null && Math.abs(r.z3) > 2).length, n1 = rows.filter(r => r.z3 != null && Math.abs(r.z3) > 1).length;
+    document.getElementById("headline-lead").innerHTML = `Positions as of <b>Tuesday ${fmtDate(asOf)}</b> (scheduled release Friday ${fmtDate(addDays(asOf, 3))}). ${rows.length} of ${U.length} contracts reported${cs.missing.length ? " (not reported: " + cs.missing.map(m => esc(m.label)).join(", ") + ")" : ""}. Comparison week: ${prev ? fmtDate(prev) : "n/a"}.`;
+    document.getElementById("headline").innerHTML = [
+      `<b>Most net long</b> (share of open interest): ${byAbs.slice(0, 3).map(sayAbs).join("; ")}.`,
+      `<b>Most net short</b>: ${byAbs.slice(-3).reverse().map(sayAbs).join("; ")}.`,
+      `<b>Most stretched long vs 3-year history</b> (${basisLabel}): ${byZ.slice(0, 2).map(sayZ).join("; ")}. <b>Most stretched short</b>: ${byZ.slice(-2).reverse().map(sayZ).join("; ")}.`,
+      `<b>Largest weekly shifts</b> (percentage points of OI): toward long, ${up.slice(0, 2).map(sayMv).join("; ")}; toward short, ${dn.slice(0, 2).map(sayMv).join("; ")}.`,
+      `${n2} contract${n2 === 1 ? "" : "s"} beyond ±2σ of the 3-year range; ${n1} beyond ±1σ.`
+    ].map(s => `<li>${s}</li>`).join("");
+
+    // charts
+    document.getElementById("legend-class").innerHTML = CLASSES.map(c => `<span style="--c:${CLASS_VAR[c]}">${c}</span>`).join("");
+    document.getElementById("z-lead").textContent = `3y rolling z-score of ${basisLabel} (bars) with the 1y z-score as a marker. Shaded ±1σ, dashed ±2σ.`;
+    hbar(document.getElementById("chart-abs"), byAbs, { value: r => r.pct, labFmt: v => (v > 0 ? "+" : "") + Math.round(v), tickFmt: t => t + "%", aria: "Net position as % of open interest, ranked" });
+    hbar(document.getElementById("chart-z"), byZ, { value: r => r.z3, point: r => r.z1, labFmt: v => fmtS1(v), band: 1, dashed: [-2, 2], minSpan: 2.4, aria: "3-year z-score, ranked" });
+
+    // movers table
+    document.getElementById("movers-lead").textContent = `Largest week-on-week changes in the net position, in percentage points of open interest (${prev ? fmtDate(prev) : ""} → ${fmtDate(asOf)}).`;
+    const mv = [...up.map(r => ({ g: "Toward net long", r })), ...dn.map(r => ({ g: "Toward net short", r }))];
+    document.getElementById("tbl-movers").innerHTML =
+      `<thead><tr><th class="l">Direction</th><th class="l">Contract</th><th class="l">Class</th><th>Δ % OI w/w</th><th>Δ contracts</th><th>Net % OI now</th><th>z 3y now</th><th>Δ z 3y</th></tr></thead><tbody>` +
+      mv.map((m, i) => `<tr class="${i === 0 || mv[i - 1].g !== m.g ? "grpstart" : ""}"><td class="grp l">${i === 0 || mv[i - 1].g !== m.g ? m.g : ""}</td><td class="l">${esc(m.r.label)}</td><td class="l">${m.r.asset_class}</td><td class="num ${m.r.dpct > 0 ? "long" : "short"}">${fmtS1(m.r.dpct)}</td><td class="num">${fmtSInt(m.r.dnet)}</td><td class="num">${fmt1(m.r.pct)}</td><td class="num">${fmt2(m.r.z3)}</td><td class="num">${fmtS2(m.r.dz3)}</td></tr>`).join("") + "</tbody>";
+
+    renderFull(rows);
+
+    // history
+    document.getElementById("hist-lead").textContent = `Net position (${basisLabel}) over the last ${HISTORY_YEARS} years against its trailing 3-year mean (dashed) with ±1σ and ±2σ bands. Red dot: position as of ${fmtDate(asOf)}. Hover for values.`;
+    const hist = document.getElementById("history"); hist.innerHTML = "";
+    for (const cls of CLASSES) {
+      const members = U.filter(u => u.asset_class === cls && series.has(u.code));
+      if (!members.length) continue;
+      const h3 = document.createElement("h3"); h3.textContent = cls; hist.appendChild(h3);
+      const grid = document.createElement("div"); grid.className = "hist"; hist.appendChild(grid);
+      for (const u of members) {
+        const arr = series.get(u.code); const ix = index.get(u.code); const o = ix.get(asOf) || null;
+        const p = document.createElement("div"); p.className = "hpanel";
+        p.innerHTML = `<div class="ttl"><b>${esc(u.label)}</b><span>${o ? (basis === "net" ? fmtSInt(o.net) : fmtS1(o.pct) + "%") : "not reported"}</span></div>`;
+        grid.appendChild(p); sparkline(p, arr, asOf, basis, u);
+      }
+    }
+
+    // notes
+    const noteRows = [...cs.missing.map(m => `<li><b>${esc(m.label)}</b> (${m.code}): not in the ${fmtDate(asOf)} report${m.lastSeen ? ", last seen " + fmtDate(m.lastSeen) : ""}. Usually fewer than 20 reportable traders that week.</li>`),
+                      ...U.filter(u => u.note).map(u => `<li><b>${esc(u.label)}</b> (${u.code}): ${esc(u.note)}</li>`)];
+    document.getElementById("notes-body").innerHTML =
+      `<p><b>Data.</b> CFTC Commitments of Traders via the CFTC Public Reporting Environment API (publicreporting.cftc.gov), ${CFG.report === "com" ? "futures and options combined" : "futures only"}, weekly from ${fmtDate(DATA.start || dates[dates.length - 1])}. Positions are as of the close on Tuesday and published the following Friday at 3:30 pm US Eastern time (Saturday morning in Sydney). This page is rebuilt from a fresh download after each release${DATA.generated ? "; this build pulled the data on " + fmtDate(DATA.generated.slice(0, 10)) : ""}.</p>` +
+      `<p><b>Trader category.</b> ${esc(CFG.category_note || "")}</p>` +
+      `<p><b>Net position.</b> Long minus short of the category. Spread positions (equal and offsetting longs and shorts held by one trader in the same market) are reported separately by the CFTC and excluded. Inter-market spreads are not netted.</p>` +
+      `<p><b>Percent of open interest.</b> Net divided by total open interest in the contract, so contracts of different size compare. Sign conventions: CME FX futures are quoted as foreign currency against the USD, so net long EUR means long EUR / short USD; the USD Index is the reverse. For Treasury, SOFR and Fed Funds futures net long means long duration, i.e. positioned for lower yields. Net long VIX is long volatility.</p>` +
+      `<p><b>z-scores.</b> (x − trailing mean) / trailing standard deviation over trailing calendar windows of 364 days (52 weekly reports) and 1,092 days (156 reports) ending on and including the current report, shown once at least 80% of the window's weeks exist. Computed on net contracts or on net % of OI (toggle above).</p>` +
+      `<p><b>Rankings.</b> From most net long (rank 1) to most net short. S&amp;P 500, Nasdaq-100 and DJIA use the CFTC consolidated series (big + e-mini + micro in big-contract equivalents). Agricultural and other commodities are out of scope except gold, copper and WTI; Brent is not covered (see below).</p>` +
+      (noteRows.length ? `<p><b>Coverage notes.</b></p><ul>${noteRows.join("")}</ul>` : "");
+    document.getElementById("foot").textContent = `${U.length} contracts · ${DATA.n_rows ? DATA.n_rows.toLocaleString("en-AU") + " contract-weeks in this page" : ""} · Source: CFTC. Not investment advice.`;
+  }
+
+  function renderFull(rows) {
+    const cols = [
+      { k: "rank_abs", h: "#", f: r => r.rank_abs == null ? "–" : r.rank_abs, cls: "num" },
+      { k: "label", h: "Contract", f: r => esc(r.label), cls: "l", str: true },
+      { k: "asset_class", h: "Class", f: r => r.asset_class, cls: "l", str: true },
+      { k: "net", h: "Net (contracts)", f: r => fmtInt(r.net), cls: "num" },
+      { k: "dnet", h: "Δ w/w", f: r => fmtSInt(r.dnet), cls: "num" },
+      { k: "pct", h: "Net % OI", f: r => fmt1(r.pct), cls: r => "num " + (r.pct > 0 ? "long" : r.pct < 0 ? "short" : "") },
+      { k: "dpct", h: "Δ pp w/w", f: r => fmtS1(r.dpct), cls: "num" },
+      { k: "z1", h: "z 1y", f: r => fmt2(r.z1), cls: r => "num " + (r.z1 != null && Math.abs(r.z1) > 2 ? "x2" : "") },
+      { k: "z3", h: "z 3y", f: r => fmt2(r.z3), cls: r => "num " + (r.z3 != null && Math.abs(r.z3) > 2 ? "x2" : "") },
+      { k: "dz3", h: "Δ z 3y", f: r => fmtS2(r.dz3), cls: "num" },
+      { k: "rank_z", h: "# by z", f: r => r.rank_z == null ? "–" : r.rank_z, cls: "num" },
+      { k: "oi", h: "Open interest", f: r => fmtInt(r.oi), cls: "num" }
+    ];
+    const sorted = rows.slice().sort((a, b) => { const va = a[state.sortKey], vb = b[state.sortKey]; if (va == null && vb == null) return 0; if (va == null) return 1; if (vb == null) return -1; return (typeof va === "string" ? va.localeCompare(vb) : va - vb) * state.sortDir; });
+    const t = document.getElementById("tbl-full");
+    t.innerHTML = `<thead><tr>${cols.map(c => `<th class="sortable ${c.str ? "l" : ""}" data-k="${c.k}" tabindex="0" role="button" aria-sort="${state.sortKey === c.k ? (state.sortDir === 1 ? "ascending" : "descending") : "none"}">${c.h}${state.sortKey === c.k ? `<span class="arrow">${state.sortDir === 1 ? "▲" : "▼"}</span>` : ""}</th>`).join("")}</tr></thead>` +
+      `<tbody>${sorted.map(r => `<tr>${cols.map(c => `<td class="${typeof c.cls === "function" ? c.cls(r) : c.cls}">${c.f(r)}</td>`).join("")}</tr>`).join("")}</tbody>`;
+    t.querySelectorAll("th.sortable").forEach(th => {
+      const go = () => { const k = th.dataset.k; if (state.sortKey === k) state.sortDir = -state.sortDir; else { state.sortKey = k; state.sortDir = (k === "label" || k === "asset_class" || k === "rank_abs" || k === "rank_z") ? 1 : -1; } renderFull(rows); };
+      th.addEventListener("click", go); th.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+    });
+  }
+
+  // ---------- events ----------
+  document.getElementById("asof").addEventListener("change", e => { state.asOf = e.target.value; render(); });
+  document.getElementById("basis-net").addEventListener("click", () => { state.basis = "net"; try { localStorage.setItem("cot-basis", "net"); } catch (e) {} render(); });
+  document.getElementById("basis-pct").addEventListener("click", () => { state.basis = "pct"; try { localStorage.setItem("cot-basis", "pct"); } catch (e) {} render(); });
+  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(render, 160); });
+
+  if (!dates.length) {
+    document.getElementById("headline-lead").textContent = "No data embedded in this page yet. It is filled by the weekly build.";
+  } else {
+    render();
+  }
+})();
+</script>
